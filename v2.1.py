@@ -7,6 +7,7 @@ HEIGHT = 600
 
 FPS = 30
 
+
 # initialise window, screen and music
 pygame.init()
 pygame.mixer.init()
@@ -27,10 +28,9 @@ GREY = (128, 128, 128)
 # Assets
 game_folder = os.path.dirname(__file__)
 resource_folder = os.path.join(game_folder, "Resources")
-cpText = pygame.font.SysFont('comicsansms.ttf', 25)
 
 
-# Sprites
+# Sprites:
 class Cloud(pygame.sprite.Sprite):
     def __init__(self, imgName):
         super().__init__()
@@ -51,6 +51,41 @@ class Cloud(pygame.sprite.Sprite):
             self.move()
 
 
+def hud(opaqueSurf, transparentSurf):
+    # HUD graphics
+    hudLeft = pygame.draw.polygon(
+        opaqueSurf, GUNMETAL, [(200, 200), (150, 450), (230, 450), (230, 200)], 0)
+    hudRight = pygame.draw.polygon(opaqueSurf, GUNMETAL, [
+        (600, 200), (650, 450), (570, 450), (570, 200)], 0)
+    hudGlass = pygame.draw.polygon(
+        transparentSurf, WHITE, [(230, 200), (260, 170), (540, 170), (570, 200), (570, 450), (540, 480), (260, 480), (230, 450)], 0)
+
+    # Aircraft graphics
+    glareshield = pygame.draw.polygon(
+        opaqueSurf, GUNMETAL, [(100, 450), (50, 600), (750, 600), (700, 450)], 0)
+    # cockpitBorder = pygame.draw.lines(opaqueSurf, GREY, False, [(150, 600), (150, 500), (650, 500), (650, 600)], 10)
+
+    cockpitScreen = pygame.draw.rect(
+        opaqueSurf, BLACK, (150, 500, 500, 150), 0)
+
+
+def hangingMan(surf):
+    # Stocks
+    base = pygame.draw.line(surf, GREEN, (300, 430), (500, 430), 10)
+    upright = pygame.draw.line(surf, GREEN, (304, 425), (304, 230), 10)
+    diagonalLower = pygame.draw.line(surf, GREEN, (308, 380), (360, 430), 5)
+    diagonalUpper = pygame.draw.line(surf, GREEN, (308, 270), (340, 230), 5)
+    topBar = pygame.draw.line(surf, GREEN, (300, 230), (450, 230), 10)
+    rope = pygame.draw.line(surf, GREEN, (448, 230), (448, 280), 5)
+
+    # Body
+    head = pygame.draw.circle(surf, GREEN, (448, 295), 15, 3)
+    body = pygame.draw.line(surf, GREEN, (448, 310), (448, 360), 3)
+    arms = pygame.draw.line(surf, GREEN, (433, 330), (462, 330), 3)
+    leftLeg = pygame.draw.line(surf, GREEN, (448, 360), (438, 410), 3)
+    rightLeg = pygame.draw.line(surf, GREEN, (448, 360), (457, 410), 3)
+
+
 # Sprite group
 all_sprites = pygame.sprite.Group()
 
@@ -62,52 +97,22 @@ cloud3 = Cloud("cloud3.png")
 all_sprites.add(cloud3)
 
 
-def textObjects(text, font, colour):
-    textSurface = font.render(text, True, colour)
-    return textSurface, textSurface.get_rect()
+#### GAME LOOP ####
+running = True
 
+while running:
 
-def wordList(fp="rafterms.txt"):
-    """
-        Collects the terms and selects parses them
-        into a dictionary format, answers{[word/phrase] : [meaning]}
+    # TIME ## - Keep it running at the right speed.
+    clock.tick(FPS)
 
-        Pass in list of words to the func (e.g. rafterms.txt)
- """
+    ## PROCESS INPUT ##
+    for event in pygame.event.get():
+        # Check for closing the window
+        if event.type == pygame.QUIT:
+            running = False
 
-    answers = {}
-    with open(resource_folder + "/" + fp, "r") as f:
-        for line in f.readlines():
-            answer = line.split("-")[0].strip()
-            meaning = line.split("-")[1].strip()
-            answers[answer] = meaning
-    return answers
+    ## UPDATE GAME ##
 
-
-def cockpit():
-    cpSurf = pygame.Surface((WIDTH, HEIGHT))
-    cpSurf.set_colorkey(BLACK)
-    hudLeft = pygame.draw.polygon(
-        cpSurf, GUNMETAL, [(200, 200), (150, 450), (230, 450), (230, 200)], 0)
-    hudRight = pygame.draw.polygon(cpSurf, GUNMETAL, [
-        (600, 200), (650, 450), (570, 450), (570, 200)], 0)
-    hudSurf = pygame.Surface((WIDTH, HEIGHT))
-    hudSurf.set_colorkey(BLACK)
-    hudSurf.set_alpha(100)
-    hudGlass = pygame.draw.polygon(
-        screen, WHITE, [(230, 200), (260, 170), (540, 170), (570, 200), (570, 450), (540, 480), (260, 480), (230, 450)], 0)
-    cpSurf.blit(hudSurf, (0, 0))
-
-    return cpSurf
-
-
-def chooseAns():
-    answers = wordList()
-    answer, description = random.choice(list(answers.items()))
-    return answer, description
-
-
-def moveClouds():
     # This allows the clouds to fall sequentially, but they get stuck.
     if cloud3.rect.top > HEIGHT / 3:
         cloud1.update()
@@ -121,34 +126,25 @@ def moveClouds():
     elif cloud1.rect.top < HEIGHT / 3 and cloud2.rect.top > 0:
         cloud2.update()
 
+    if cloud2.rect.top > HEIGHT / 3:
+        cloud3.update()
+    elif cloud2.rect.top <= HEIGHT / 3 and cloud3.rect.top > 0:
+        cloud3.update()
 
-def game():
-    answer, description = chooseAns()
-    running = True
-    while running:
-        # TIME ## - Keep it running at the right speed.
-        clock.tick(FPS)
+    ## DRAW/RENDER ##
+    screen.fill(SKYBLUE)
+    all_sprites.draw(screen)
 
-        ## PROCESS INPUT ##
-        for event in pygame.event.get():
-            # Check for closing the window
-            if event.type == pygame.QUIT:
-                running = False
+    # Draw the hud - making the screen a surface allows the glass to be opaque.
+    hudScreen = pygame.Surface((WIDTH, HEIGHT))
+    hudScreen.set_colorkey(BLACK)
+    hud(screen, hudScreen)
+    hudScreen.set_alpha(75)
+    hangingMan(screen)
+    screen.blit(hudScreen, (0, 0))
 
-        ## UPDATE GAME ##
-        moveClouds()
-
-        ## DRAW / RENDER ##
-        screen.fill(SKYBLUE)
-        all_sprites.draw(screen)
-        cPit = cockpit()
-        screen.blit(cPit, (0, 0))
-
-        # *After drawing everything*, flip the drawing to the display.
-        pygame.display.flip()
-
-    pygame.quit()
+    # *After drawing everything*, flip the drawing to the display.
+    pygame.display.flip()
 
 
-if __name__ == "__main__":
-    game()
+pygame.quit()
