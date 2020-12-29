@@ -152,8 +152,8 @@ def mask(answer):
     return a
 
 
-def getInput():
-    input_box = pygame.Rect(100, 100, 140, 32)
+def getInput(x, y, w, h):
+    input_box = pygame.Rect(x, y, w, h)
     colour_inactive = WHITE
     colour_active = GREEN
 
@@ -176,8 +176,10 @@ def game():
     answer, description = chooseAns()
     ansMask = mask(answer)
     active = False
-    guess = ""
-    input_box, colour_inactive, colour_active = getInput()
+    guess = "_"
+    ib_x, ib_y, ib_w, ib_h = 500, 500, 150, 40
+    input_box, colour_inactive, colour_active = getInput(
+        ib_x, ib_y+1, ib_w, ib_h)
     colour = colour_inactive
 
     #### GAME LOOP ####
@@ -206,14 +208,20 @@ def game():
 
             if event.type == pygame.KEYDOWN:
                 if active:
-                    if event.key == pygame.K_RETURN:
-                        lastGuess = guess
-                    elif event.key == pygame.K_BACKSPACE:
-                        guess = guess[:-1]
+                    attempt = event.unicode
+                    if attempt.isalpha():
+                        print(f"{attempt} is a letter")
+                        guess = attempt.upper()
                     else:
-                        guess += event.unicode
-
-                ## UPDATE GAME ##
+                        guess = "_"
+                        # Make this a caption in the HUD.
+                        print(f"{attempt} Not a letter! Make another guess")
+                        # For testing:
+                        print(guess)
+                else:
+                    # YLO caption saying to click on the input box in the HUD
+                    print("Input not active")
+        ## UPDATE GAME ##
         moveClouds()
 
         # Display answer text for texting purposes.
@@ -222,7 +230,9 @@ def game():
         testTextRect.topleft = ((0, 0))
 
         maskSurf, maskRect = textDisplay(ansMask, 160, 550, GREEN)
-        guessSurf, guessRect = textDisplay(guess, 50, 50, GREEN)
+        guessSurf, guessRect = textDisplay(
+            f"Guess a letter: {guess}", ib_x, ib_y, GREEN)
+        guessRect.center = ((ib_x + ib_w/2, ib_y + ib_h/2))
 
         ## DRAW/RENDER ##
         screen.fill(SKYBLUE)
