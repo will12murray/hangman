@@ -1,6 +1,7 @@
 import pygame
 import random
 import os
+import re
 
 WIDTH = 800
 HEIGHT = 600
@@ -51,6 +52,45 @@ class Cloud(pygame.sprite.Sprite):
             self.move()
 
 
+# Sprite group
+all_sprites = pygame.sprite.Group()
+
+cloud1 = Cloud("cloud1.png")
+all_sprites.add(cloud1)
+cloud2 = Cloud("cloud2.png")
+all_sprites.add(cloud2)
+cloud3 = Cloud("cloud3.png")
+all_sprites.add(cloud3)
+
+
+def textObjects(text, font, colour):
+    textSurface = font.render(text, True, colour)
+    return textSurface, textSurface.get_rect()
+
+
+def wordList(fp="rafterms.txt"):
+    """
+        Collects the terms and selects parses them
+        into a dictionary format, answers{[word/phrase] : [meaning]}
+
+        Pass in list of words to the func (e.g. rafterms.txt)
+ """
+
+    answers = {}
+    with open(resource_folder + "/" + fp, "r") as f:
+        for line in f.readlines():
+            answer = line.split("-")[0].strip().upper()
+            meaning = line.split("-")[1].strip().upper()
+            answers[answer] = meaning
+    return answers
+
+
+def chooseAns():
+    answers = wordList()
+    answer, description = random.choice(list(answers.items()))
+    return answer, description
+
+
 def hud(opaqueSurf, transparentSurf):
     # HUD graphics
     hudLeft = pygame.draw.polygon(
@@ -86,33 +126,7 @@ def hangingMan(surf):
     rightLeg = pygame.draw.line(surf, GREEN, (448, 360), (457, 410), 3)
 
 
-# Sprite group
-all_sprites = pygame.sprite.Group()
-
-cloud1 = Cloud("cloud1.png")
-all_sprites.add(cloud1)
-cloud2 = Cloud("cloud2.png")
-all_sprites.add(cloud2)
-cloud3 = Cloud("cloud3.png")
-all_sprites.add(cloud3)
-
-
-#### GAME LOOP ####
-running = True
-
-while running:
-
-    # TIME ## - Keep it running at the right speed.
-    clock.tick(FPS)
-
-    ## PROCESS INPUT ##
-    for event in pygame.event.get():
-        # Check for closing the window
-        if event.type == pygame.QUIT:
-            running = False
-
-    ## UPDATE GAME ##
-
+def moveClouds():
     # This allows the clouds to fall sequentially, but they get stuck.
     if cloud3.rect.top > HEIGHT / 3:
         cloud1.update()
@@ -131,20 +145,112 @@ while running:
     elif cloud2.rect.top <= HEIGHT / 3 and cloud3.rect.top > 0:
         cloud3.update()
 
-    ## DRAW/RENDER ##
-    screen.fill(SKYBLUE)
-    all_sprites.draw(screen)
 
-    # Draw the hud - making the screen a surface allows the glass to be opaque.
-    hudScreen = pygame.Surface((WIDTH, HEIGHT))
-    hudScreen.set_colorkey(BLACK)
-    hud(screen, hudScreen)
-    hudScreen.set_alpha(75)
-    hangingMan(screen)
-    screen.blit(hudScreen, (0, 0))
-
-    # *After drawing everything*, flip the drawing to the display.
-    pygame.display.flip()
+def mask(answer):
+    a = answer
+    a = re.sub('\w', '_ ', answer)
+    return a
 
 
-pygame.quit()
+def getInput():
+    input_box = pygame.Rect(100, 100, 140, 32)
+    colour_inactive = WHITE
+    colour_active = GREEN
+
+    return input_box, colour_inactive, colour_active
+
+
+def guessed():
+    pass
+
+
+def textDisplay(texttodisplay, x, y, colour):
+    text = pygame.font.SysFont('comicsansms.ttf', 25)
+    textSurf, textRect = textObjects(texttodisplay, text, colour)
+    textRect.topleft = ((x, y))
+    return textSurf, textRect
+
+
+def game():
+    # Game variables
+    answer, description = chooseAns()
+    ansMask = mask(answer)
+    active = False
+    guess = ""
+    input_box, colour_inactive, colour_active = getInput()
+    colour = colour_inactive
+
+    #### GAME LOOP ####
+    running = True
+
+    while running:
+
+        # TIME ## - Keep it running at the right speed.
+        clock.tick(FPS)
+
+        ## PROCESS INPUT ##
+        for event in pygame.event.get():
+            # Check for closing the window
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # If user click on input box:
+                if input_box.collidepoint(event.pos):
+                    # Toggle the active variable
+                    active = not active
+                else:
+                    active = False
+                # change colour of input box
+                colour = colour_active if active else colour_inactive
+
+            if event.type == pygame.KEYDOWN:
+                if active:
+                    if event.key == pygame.K_RETURN:
+                        lastGuess = guess
+                    elif event.key == pygame.K_BACKSPACE:
+                        guess = guess[:-1]
+                    else:
+                        guess += event.unicode
+
+                ## UPDATE GAME ##
+        moveClouds()
+
+        # Display answer text for texting purposes.
+        text = pygame.font.SysFont('comicsansms.ttf', 25)
+        testTextSurf, testTextRect = textObjects(answer, text, RED)
+        testTextRect.topleft = ((0, 0))
+
+        maskSurf, maskRect = textDisplay(ansMask, 160, 550, GREEN)
+        guessSurf, guessRect = textDisplay(guess, 50, 50, GREEN)
+
+        ## DRAW/RENDER ##
+        screen.fill(SKYBLUE)
+        all_sprites.draw(screen)
+
+        # Draw the hud - making the screen a surface allows the glass to be opaque.
+        hudScreen = pygame.Surface((WIDTH, HEIGHT))
+        hudScreen.set_colorkey(BLACK)
+        hud(screen, hudScreen)
+        hudScreen.set_alpha(75)
+
+        # Test blit below.
+        screen.blit(testTextSurf, testTextRect)
+        screen.blit(maskSurf, maskRect)
+        screen.blit(guessSurf, guessRect)
+
+        hangingMan(screen)
+
+        screen.blit(hudScreen, (0, 0))
+
+        # boxWidth = max(200, guessSurf, (input_box.x+5, input_box.y+5))
+        pygame.draw.rect(screen, colour, input_box, 2)
+
+        # *After drawing everything*, flip the drawing to the display.
+        pygame.display.flip()
+
+    pygame.quit()
+
+
+if __name__ == '__main__':
+    game()

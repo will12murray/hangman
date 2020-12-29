@@ -1,6 +1,7 @@
 import os
 import sys
 import random
+import re
 
 
 # Assets
@@ -31,5 +32,23 @@ def chooseAns():
     return answer, description
 
 
+def mask(answer):
+    a = answer
+    a = re.sub('\w', '_ ', answer)
+    return a
+
+
+def passer():
+    x = 1
+    y = 24
+    z = 19
+    return x, y, z
+
+
 answer, descpription = chooseAns()
 print(f"Answer={answer}, descpription={descpription}")
+ansMask = mask(answer)
+print(f"Mask = {ansMask}")
+
+x, y, z = passer()
+print(x, y, z)
