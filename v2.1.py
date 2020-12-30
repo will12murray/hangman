@@ -5,9 +5,7 @@ import re
 
 WIDTH = 800
 HEIGHT = 600
-
 FPS = 30
-
 
 # initialise window, screen and music
 pygame.init()
@@ -30,8 +28,9 @@ GREY = (128, 128, 128)
 game_folder = os.path.dirname(__file__)
 resource_folder = os.path.join(game_folder, "Resources")
 
-
 # Sprites:
+
+
 class Cloud(pygame.sprite.Sprite):
     def __init__(self, imgName):
         super().__init__()
@@ -42,7 +41,6 @@ class Cloud(pygame.sprite.Sprite):
         self.rect.center = (random.randint(50, 750), -50)
 
     def move(self):
-
         self.rect.x = random.randint(50, 750)
 
     def update(self):
@@ -52,20 +50,26 @@ class Cloud(pygame.sprite.Sprite):
             self.move()
 
 
-# Sprite group
-all_sprites = pygame.sprite.Group()
+# Sprite management
+clouds = pygame.sprite.Group()
 
 cloud1 = Cloud("cloud1.png")
-all_sprites.add(cloud1)
 cloud2 = Cloud("cloud2.png")
-all_sprites.add(cloud2)
 cloud3 = Cloud("cloud3.png")
-all_sprites.add(cloud3)
+
+clouds.add(cloud1, cloud2, cloud3)
 
 
 def textObjects(text, font, colour):
     textSurface = font.render(text, True, colour)
     return textSurface, textSurface.get_rect()
+
+
+def textDisplay(texttodisplay, x, y, colour):
+    text = pygame.font.SysFont('comicsansms.ttf', 25)
+    textSurf, textRect = textObjects(texttodisplay, text, colour)
+    textRect.topleft = ((x, y))
+    return textSurf, textRect
 
 
 def wordList(fp="rafterms.txt"):
@@ -109,23 +113,6 @@ def hud(opaqueSurf, transparentSurf):
         opaqueSurf, BLACK, (150, 500, 500, 150), 0)
 
 
-def hangingMan(surf):
-    # Stocks
-    base = pygame.draw.line(surf, GREEN, (300, 430), (500, 430), 10)
-    upright = pygame.draw.line(surf, GREEN, (304, 425), (304, 230), 10)
-    diagonalLower = pygame.draw.line(surf, GREEN, (308, 380), (360, 430), 5)
-    diagonalUpper = pygame.draw.line(surf, GREEN, (308, 270), (340, 230), 5)
-    topBar = pygame.draw.line(surf, GREEN, (300, 230), (450, 230), 10)
-    rope = pygame.draw.line(surf, GREEN, (448, 230), (448, 280), 5)
-
-    # Body
-    head = pygame.draw.circle(surf, GREEN, (448, 295), 15, 3)
-    body = pygame.draw.line(surf, GREEN, (448, 310), (448, 360), 3)
-    arms = pygame.draw.line(surf, GREEN, (433, 330), (462, 330), 3)
-    leftLeg = pygame.draw.line(surf, GREEN, (448, 360), (438, 410), 3)
-    rightLeg = pygame.draw.line(surf, GREEN, (448, 360), (457, 410), 3)
-
-
 def moveClouds():
     # This allows the clouds to fall sequentially, but they get stuck.
     if cloud3.rect.top > HEIGHT / 3:
@@ -160,15 +147,20 @@ def getInput(x, y, w, h):
     return input_box, colour_inactive, colour_active
 
 
-def guessed():
+def msg():
+    #     correctCap = "Correct! Good guess!"
+    #     incorrectCap = "Unlucky, that's not in the answer."
+    #     deadCap = "No guesses left, game over!"
+    #     validationCap = "That is not a letter - please try again."
+
+    #     return correctCap, incorrectCap, deadCap, validationCap
+
+    # def caption(msg, colour):
+    #     alertBox = pygame.Rect(0, 0, 200, 10)
+    #     msgSurf, msgRect = textDisplay(msg, 262, 182, colour)
+
+    #     return alertBox, msgSurf, msgRect
     pass
-
-
-def textDisplay(texttodisplay, x, y, colour):
-    text = pygame.font.SysFont('comicsansms.ttf', 25)
-    textSurf, textRect = textObjects(texttodisplay, text, colour)
-    textRect.topleft = ((x, y))
-    return textSurf, textRect
 
 
 def game():
@@ -181,6 +173,10 @@ def game():
     input_box, colour_inactive, colour_active = getInput(
         ib_x, ib_y+1, ib_w, ib_h)
     colour = colour_inactive
+    attempt = "_"
+    tries = 0
+    guesses = []
+    # correctCap, incorrectCap, deadCap, validationCap = msg()
 
     #### GAME LOOP ####
     running = True
@@ -206,21 +202,33 @@ def game():
                 # change colour of input box
                 colour = colour_active if active else colour_inactive
 
-            if event.type == pygame.KEYDOWN:
-                if active:
-                    attempt = event.unicode
-                    if attempt.isalpha():
-                        print(f"{attempt} is a letter")
-                        guess = attempt.upper()
+            if tries < 11:
+                if event.type == pygame.KEYDOWN:
+                    if active:
+                        attempt = event.unicode
+                        if attempt.isalpha():
+                            print(f"{attempt} is a letter")
+                            guess = attempt.upper()
+                            if guess not in guesses:
+                                guesses.append(guess)
+                                if guess in answer:
+                                    print("Correct")
+                                else:
+                                    tries += 1
+                                    print("incorrect")
+                            else:
+                                print("You have already guessed this!")
+                        else:
+                            guess = "_"
+                            print('validation')
+                            # For testing:
+                            print(guess)
                     else:
-                        guess = "_"
-                        # Make this a caption in the HUD.
-                        print(f"{attempt} Not a letter! Make another guess")
-                        # For testing:
-                        print(guess)
-                else:
-                    # YLO caption saying to click on the input box in the HUD
-                    print("Input not active")
+                        # YLO caption saying to click on the input box in the HUD
+                        print("Input not active")
+            else:
+                print("game over")
+
         ## UPDATE GAME ##
         moveClouds()
 
@@ -232,11 +240,11 @@ def game():
         maskSurf, maskRect = textDisplay(ansMask, 160, 550, GREEN)
         guessSurf, guessRect = textDisplay(
             f"Guess a letter: {guess}", ib_x, ib_y, GREEN)
-        guessRect.center = ((ib_x + ib_w/2, ib_y + ib_h/2))
+        guessRect.center = ((ib_x + ib_w / 2, ib_y + ib_h / 2))
 
         ## DRAW/RENDER ##
         screen.fill(SKYBLUE)
-        all_sprites.draw(screen)
+        clouds.draw(screen)
 
         # Draw the hud - making the screen a surface allows the glass to be opaque.
         hudScreen = pygame.Surface((WIDTH, HEIGHT))
@@ -249,11 +257,132 @@ def game():
         screen.blit(maskSurf, maskRect)
         screen.blit(guessSurf, guessRect)
 
-        hangingMan(screen)
+        # Draw the hangman based on number of tries.
+        if tries == 1:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
 
-        screen.blit(hudScreen, (0, 0))
+        elif tries == 2:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
 
-        # boxWidth = max(200, guessSurf, (input_box.x+5, input_box.y+5))
+        elif tries == 3:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+
+        elif tries == 4:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+            diagonalUpper = pygame.draw.line(
+                screen, GREEN, (308, 270), (340, 230), 5)
+
+        elif tries == 5:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+            diagonalUpper = pygame.draw.line(
+                screen, GREEN, (308, 270), (340, 230), 5)
+            topBar = pygame.draw.line(
+                screen, GREEN, (300, 230), (450, 230), 10)
+
+        elif tries == 6:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+            diagonalUpper = pygame.draw.line(
+                screen, GREEN, (308, 270), (340, 230), 5)
+            topBar = pygame.draw.line(
+                screen, GREEN, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
+
+        elif tries == 7:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+            diagonalUpper = pygame.draw.line(
+                screen, GREEN, (308, 270), (340, 230), 5)
+            topBar = pygame.draw.line(
+                screen, GREEN, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
+
+        elif tries == 8:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+            diagonalUpper = pygame.draw.line(
+                screen, GREEN, (308, 270), (340, 230), 5)
+            topBar = pygame.draw.line(
+                screen, GREEN, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
+            body = pygame.draw.line(screen, GREEN, (448, 310), (448, 360), 3)
+
+        elif tries == 9:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+            diagonalUpper = pygame.draw.line(
+                screen, GREEN, (308, 270), (340, 230), 5)
+            topBar = pygame.draw.line(
+                screen, GREEN, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
+            body = pygame.draw.line(screen, GREEN, (448, 310), (448, 360), 3)
+            arms = pygame.draw.line(screen, GREEN, (433, 330), (462, 330), 3)
+
+        elif tries == 10:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+            diagonalUpper = pygame.draw.line(
+                screen, GREEN, (308, 270), (340, 230), 5)
+            topBar = pygame.draw.line(
+                screen, GREEN, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
+            body = pygame.draw.line(screen, GREEN, (448, 310), (448, 360), 3)
+            arms = pygame.draw.line(screen, GREEN, (433, 330), (462, 330), 3)
+            leftLeg = pygame.draw.line(
+                screen, GREEN, (448, 360), (438, 410), 3)
+
+        elif tries == 11:
+            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            upright = pygame.draw.line(
+                screen, GREEN, (304, 425), (304, 230), 10)
+            diagonalLower = pygame.draw.line(
+                screen, GREEN, (308, 380), (360, 430), 5)
+            diagonalUpper = pygame.draw.line(
+                screen, GREEN, (308, 270), (340, 230), 5)
+            topBar = pygame.draw.line(
+                screen, GREEN, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
+            body = pygame.draw.line(screen, GREEN, (448, 310), (448, 360), 3)
+            arms = pygame.draw.line(screen, GREEN, (433, 330), (462, 330), 3)
+            leftLeg = pygame.draw.line(
+                screen, GREEN, (448, 360), (438, 410), 3)
+            rightLeg = pygame.draw.line(
+                screen, GREEN, (448, 360), (457, 410), 3)
+
         pygame.draw.rect(screen, colour, input_box, 2)
 
         # *After drawing everything*, flip the drawing to the display.
