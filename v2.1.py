@@ -18,6 +18,7 @@ clock = pygame.time.Clock()
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 SKYBLUE = (135, 206, 235)
@@ -97,18 +98,16 @@ def chooseAns():
 
 def hud(opaqueSurf, transparentSurf):
     # HUD graphics
-    hudLeft = pygame.draw.polygon(
-        opaqueSurf, GUNMETAL, [(200, 200), (150, 450), (230, 450), (230, 200)], 0)
-    hudRight = pygame.draw.polygon(opaqueSurf, GUNMETAL, [
-        (600, 200), (650, 450), (570, 450), (570, 200)], 0)
-    hudGlass = pygame.draw.polygon(
-        transparentSurf, WHITE, [(230, 200), (260, 170), (540, 170), (570, 200), (570, 450), (540, 480), (260, 480), (230, 450)], 0)
+    hudLeft = pygame.draw.polygon(opaqueSurf, GUNMETAL, [(
+        200, 200), (150, 450), (230, 450), (230, 200)], 0)
+    hudRight = pygame.draw.polygon(opaqueSurf, GUNMETAL, [(
+        600, 200), (650, 450), (570, 450), (570, 200)], 0)
+    hudGlass = pygame.draw.polygon(transparentSurf, WHITE, [(230, 200), (260, 170), (
+        540, 170), (570, 200), (570, 450), (540, 480), (260, 480), (230, 450)], 0)
 
     # Aircraft graphics
     glareshield = pygame.draw.polygon(
         opaqueSurf, GUNMETAL, [(100, 450), (50, 600), (750, 600), (700, 450)], 0)
-    # cockpitBorder = pygame.draw.lines(opaqueSurf, GREY, False, [(150, 600), (150, 500), (650, 500), (650, 600)], 10)
-
     cockpitScreen = pygame.draw.rect(
         opaqueSurf, BLACK, (150, 500, 500, 150), 0)
 
@@ -133,10 +132,65 @@ def moveClouds():
         cloud3.update()
 
 
-def mask(answer):
-    a = answer
-    a = re.sub('\w', '_ ', answer)
-    return a
+def mask(answer, maskList):
+    for i in range(len(answer)):
+        if answer[i].isalpha():
+            maskList.append('_')
+        elif answer[i] == " ":
+            maskList.append(answer[i])
+    return maskList
+
+
+def msg(status, guess, answer):
+    # Msg status = 1:Correct, 2: Incorrect, 3: previously guessed,  4:winner, 5:dead
+    if status == 1:
+        msg = f"Congrats! {guess} is in the answer!"
+        colour = GREEN
+    elif status == 2:
+        msg = f"Unlucky, {guess} is incorrect! Try again!"
+        colour = RED
+    elif status == 3:
+        msg = f"You've already guessed {guess}, try again."
+        colour = YELLOW
+    elif status == 4:
+        msg = f"Congratulations! You got the answer which was {answer}."
+        colour = GREEN
+    elif status == 5:
+        msg = f"Game over! The answer was {answer}"
+        colour = RED
+    return msg, colour
+
+
+def reveal(event, active, tries, ansMask, answer, maskList, running, incGuesses):
+    msg = ""
+    guess = ""
+    if ansMask != answer:
+        if event.type == pygame.KEYDOWN and active:
+            try:
+                guess = event.unicode
+                if guess in answer:
+                    if guess not in maskList:
+                        for i in range(len(answer)):
+                            if answer[i] == guess:
+                                maskList[i] = guess
+                        msg = f"Correct! {guess} in answer."
+                    else:
+                        msg = f"You already guessed {guess}, try again!"
+                elif guess not in incGuesses:
+                    incGuesses.append(guess)
+                    tries += 1
+                    msg = f"Incorrect! {guess} is not in the the answer"
+                else:
+                    msg = f"You already guessed {guess}, try again!"
+            except IndexError:
+                msg = "Enter a guess!"
+
+    else:
+        msg = f"Congratuluations, you completed it! The answer was {answer}!"
+
+        running = False
+
+    return guess, maskList, msg, tries, running
 
 
 def getInput(x, y, w, h):
@@ -147,36 +201,21 @@ def getInput(x, y, w, h):
     return input_box, colour_inactive, colour_active
 
 
-def msg():
-    #     correctCap = "Correct! Good guess!"
-    #     incorrectCap = "Unlucky, that's not in the answer."
-    #     deadCap = "No guesses left, game over!"
-    #     validationCap = "That is not a letter - please try again."
-
-    #     return correctCap, incorrectCap, deadCap, validationCap
-
-    # def caption(msg, colour):
-    #     alertBox = pygame.Rect(0, 0, 200, 10)
-    #     msgSurf, msgRect = textDisplay(msg, 262, 182, colour)
-
-    #     return alertBox, msgSurf, msgRect
-    pass
-
-
 def game():
     # Game variables
     answer, description = chooseAns()
-    ansMask = mask(answer)
+    maskList = []
+    ansMask = "".join(mask(answer, maskList))
+    incGuesses = []
     active = False
-    guess = "_"
     ib_x, ib_y, ib_w, ib_h = 500, 500, 150, 40
     input_box, colour_inactive, colour_active = getInput(
         ib_x, ib_y+1, ib_w, ib_h)
     colour = colour_inactive
-    attempt = "_"
     tries = 0
-    guesses = []
-    # correctCap, incorrectCap, deadCap, validationCap = msg()
+    caption = ""
+    statusColour = "GREEN"
+    guess = "_"
 
     #### GAME LOOP ####
     running = True
@@ -202,45 +241,75 @@ def game():
                 # change colour of input box
                 colour = colour_active if active else colour_inactive
 
-            if tries < 11:
-                if event.type == pygame.KEYDOWN:
-                    if active:
-                        attempt = event.unicode
-                        if attempt.isalpha():
-                            print(f"{attempt} is a letter")
-                            guess = attempt.upper()
-                            if guess not in guesses:
-                                guesses.append(guess)
+            if active:
+                if tries < 11:
+                    if ansMask != answer:
+                        if event.type == pygame.KEYDOWN:
+                            guess = str(event.unicode).upper()
+                            if guess.isalpha():
                                 if guess in answer:
-                                    print("Correct")
-                                else:
+                                    if guess not in maskList:
+                                        for i in range(len(answer)):
+                                            if answer[i] == guess:
+                                                maskList[i] = guess
+                                                caption, statusColour = msg(
+                                                    1, guess, answer)
+                                    else:
+                                        caption, statusColour = msg(
+                                            3, guess, answer)
+                                elif guess not in incGuesses:
+                                    incGuesses.append(guess)
+                                    caption, statusColour = msg(
+                                        2, guess, answer)
                                     tries += 1
-                                    print("incorrect")
-                            else:
-                                print("You have already guessed this!")
-                        else:
-                            guess = "_"
-                            print('validation')
-                            # For testing:
-                            print(guess)
+                                else:
+                                    caption, statusColour = msg(
+                                        3, guess, answer)
                     else:
-                        # YLO caption saying to click on the input box in the HUD
-                        print("Input not active")
-            else:
-                print("game over")
+                        caption, statusColour = msg(4, guess, answer)
+                        running = False
+                else:
+                    caption, statusColour = msg(5, guess, answer)
+                    running = False
 
         ## UPDATE GAME ##
         moveClouds()
+        ansMask = "".join(maskList)
 
-        # Display answer text for texting purposes.
+        # Test block
+        print('\n----------\n')
+        print(f"You guessed {guess}")
+        print(f"Message = {caption}")
+        print(f"Mask List = {maskList}")
+        print(f"Incorrect guesses = {incGuesses}")
+        print('\n----------\n')
+        if not running:
+            print(answer)
+            print(description)
+
+        # Display answer text for testing.
         text = pygame.font.SysFont('comicsansms.ttf', 25)
         testTextSurf, testTextRect = textObjects(answer, text, RED)
         testTextRect.topleft = ((0, 0))
 
+        # Create the mask text and surface
         maskSurf, maskRect = textDisplay(ansMask, 160, 550, GREEN)
+        # Create the guess text and surface
         guessSurf, guessRect = textDisplay(
             f"Guess a letter: {guess}", ib_x, ib_y, GREEN)
         guessRect.center = ((ib_x + ib_w / 2, ib_y + ib_h / 2))
+        # # Create the message text and surface
+        msgSurf, msgRect = textDisplay(caption, 260, 180, statusColour)
+        msgRect.center = (WIDTH / 2, 180)
+
+        """
+        Split the text across 2 lines if the textrect is < x = 230
+
+        if msgRect.x < 230:
+            print("WIDE")
+        else:
+            print("Fine")
+        """
 
         ## DRAW/RENDER ##
         screen.fill(SKYBLUE)
@@ -249,13 +318,16 @@ def game():
         # Draw the hud - making the screen a surface allows the glass to be opaque.
         hudScreen = pygame.Surface((WIDTH, HEIGHT))
         hudScreen.set_colorkey(BLACK)
-        hud(screen, hudScreen)
         hudScreen.set_alpha(75)
+        # HUD graphics
+        hud(screen, hudScreen)
 
-        # Test blit below.
+        # Blits.
+        screen.blit(hudScreen, (0, 0))
         screen.blit(testTextSurf, testTextRect)
         screen.blit(maskSurf, maskRect)
         screen.blit(guessSurf, guessRect)
+        screen.blit(msgSurf, msgRect)
 
         # Draw the hangman based on number of tries.
         if tries == 1:
