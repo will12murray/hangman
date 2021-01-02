@@ -391,69 +391,69 @@ def game():
             head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
 
         elif tries == 8:
-            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            base = pygame.draw.line(screen, YELLOW, (300, 430), (500, 430), 10)
             upright = pygame.draw.line(
-                screen, GREEN, (304, 425), (304, 230), 10)
+                screen, YELLOW, (304, 425), (304, 230), 10)
             diagonalLower = pygame.draw.line(
-                screen, GREEN, (308, 380), (360, 430), 5)
+                screen, YELLOW, (308, 380), (360, 430), 5)
             diagonalUpper = pygame.draw.line(
-                screen, GREEN, (308, 270), (340, 230), 5)
+                screen, YELLOW, (308, 270), (340, 230), 5)
             topBar = pygame.draw.line(
-                screen, GREEN, (300, 230), (450, 230), 10)
-            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
-            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
-            body = pygame.draw.line(screen, GREEN, (448, 310), (448, 360), 3)
+                screen, YELLOW, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, YELLOW, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, YELLOW, (448, 295), 15, 3)
+            body = pygame.draw.line(screen, YELLOW, (448, 310), (448, 360), 3)
 
         elif tries == 9:
-            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            base = pygame.draw.line(screen, YELLOW, (300, 430), (500, 430), 10)
             upright = pygame.draw.line(
-                screen, GREEN, (304, 425), (304, 230), 10)
+                screen, YELLOW, (304, 425), (304, 230), 10)
             diagonalLower = pygame.draw.line(
-                screen, GREEN, (308, 380), (360, 430), 5)
+                screen, YELLOW, (308, 380), (360, 430), 5)
             diagonalUpper = pygame.draw.line(
-                screen, GREEN, (308, 270), (340, 230), 5)
+                screen, YELLOW, (308, 270), (340, 230), 5)
             topBar = pygame.draw.line(
-                screen, GREEN, (300, 230), (450, 230), 10)
-            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
-            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
-            body = pygame.draw.line(screen, GREEN, (448, 310), (448, 360), 3)
-            arms = pygame.draw.line(screen, GREEN, (433, 330), (462, 330), 3)
+                screen, YELLOW, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, YELLOW, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, YELLOW, (448, 295), 15, 3)
+            body = pygame.draw.line(screen, YELLOW, (448, 310), (448, 360), 3)
+            arms = pygame.draw.line(screen, YELLOW, (433, 330), (462, 330), 3)
 
         elif tries == 10:
-            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            base = pygame.draw.line(screen, YELLOW, (300, 430), (500, 430), 10)
             upright = pygame.draw.line(
-                screen, GREEN, (304, 425), (304, 230), 10)
+                screen, YELLOW, (304, 425), (304, 230), 10)
             diagonalLower = pygame.draw.line(
-                screen, GREEN, (308, 380), (360, 430), 5)
+                screen, YELLOW, (308, 380), (360, 430), 5)
             diagonalUpper = pygame.draw.line(
-                screen, GREEN, (308, 270), (340, 230), 5)
+                screen, YELLOW, (308, 270), (340, 230), 5)
             topBar = pygame.draw.line(
-                screen, GREEN, (300, 230), (450, 230), 10)
-            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
-            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
-            body = pygame.draw.line(screen, GREEN, (448, 310), (448, 360), 3)
-            arms = pygame.draw.line(screen, GREEN, (433, 330), (462, 330), 3)
+                screen, YELLOW, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, YELLOW, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, YELLOW, (448, 295), 15, 3)
+            body = pygame.draw.line(screen, YELLOW, (448, 310), (448, 360), 3)
+            arms = pygame.draw.line(screen, YELLOW, (433, 330), (462, 330), 3)
             leftLeg = pygame.draw.line(
-                screen, GREEN, (448, 360), (438, 410), 3)
+                screen, YELLOW, (448, 360), (438, 410), 3)
 
         elif tries == 11:
-            base = pygame.draw.line(screen, GREEN, (300, 430), (500, 430), 10)
+            base = pygame.draw.line(screen, RED, (300, 430), (500, 430), 10)
             upright = pygame.draw.line(
-                screen, GREEN, (304, 425), (304, 230), 10)
+                screen, RED, (304, 425), (304, 230), 10)
             diagonalLower = pygame.draw.line(
-                screen, GREEN, (308, 380), (360, 430), 5)
+                screen, RED, (308, 380), (360, 430), 5)
             diagonalUpper = pygame.draw.line(
-                screen, GREEN, (308, 270), (340, 230), 5)
+                screen, RED, (308, 270), (340, 230), 5)
             topBar = pygame.draw.line(
-                screen, GREEN, (300, 230), (450, 230), 10)
-            rope = pygame.draw.line(screen, GREEN, (448, 230), (448, 280), 5)
-            head = pygame.draw.circle(screen, GREEN, (448, 295), 15, 3)
-            body = pygame.draw.line(screen, GREEN, (448, 310), (448, 360), 3)
-            arms = pygame.draw.line(screen, GREEN, (433, 330), (462, 330), 3)
+                screen, RED, (300, 230), (450, 230), 10)
+            rope = pygame.draw.line(screen, RED, (448, 230), (448, 280), 5)
+            head = pygame.draw.circle(screen, RED, (448, 295), 15, 3)
+            body = pygame.draw.line(screen, RED, (448, 310), (448, 360), 3)
+            arms = pygame.draw.line(screen, RED, (433, 330), (462, 330), 3)
             leftLeg = pygame.draw.line(
-                screen, GREEN, (448, 360), (438, 410), 3)
+                screen, RED, (448, 360), (438, 410), 3)
             rightLeg = pygame.draw.line(
-                screen, GREEN, (448, 360), (457, 410), 3)
+                screen, RED, (448, 360), (457, 410), 3)
 
         pygame.draw.rect(screen, colour, input_box, 2)
 
