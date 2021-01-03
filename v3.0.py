@@ -156,10 +156,10 @@ def msg(status, guess, answer, description):
         msg = f"You've already guessed {guess}, try again."
         colour = YELLOW
     elif status == 4:
-        msg = f"{answer}."
+        msg = f"Congratulations! {answer}."
         colour = GREEN
     elif status == 5:
-        msg = f"{answer}"
+        msg = f"Unlucky: {answer}"
         colour = RED
     return msg, colour
 
@@ -282,17 +282,6 @@ def paused():
         clock.tick(30)
 
 
-# def msgDelay(obj_surf, obj_rect, duration, msgEnd, surf=screen):
-#     """
-#     Pauses the prescribed msg for the duration provided.
-#     msgEnd = pygame.time.get_ticks() on the message to be displayed
-#     surf is surface to be blitted to - default screen
-#     """
-#     currentTime = pygame.time.get_ticks() + 3000
-#     if currentTime < msgEnd:
-#         surf.blit(obj_surf, obj_rect)
-
-
 def game():
     # Game variables
     global pause
@@ -310,6 +299,7 @@ def game():
     statusColour = "GREEN"
     guess = "_"
     over = False
+
     #### GAME LOOP ####
     running = True
     win_status = ""
@@ -371,7 +361,7 @@ def game():
                         caption, statusColour = msg(
                             4, guess, answer, description)
                         message_end_time = pygame.time.get_ticks() + 3000
-                        # time.sleep(1)
+                        # time.sleep(2)
                         win_status = True
                         # gameOver(win_status, answer, description)
                 else:
@@ -381,8 +371,8 @@ def game():
                             paused()
                     caption, statusColour = msg(5, guess, answer, description)
                     message_end_time = pygame.time.get_ticks() + 3000
-                    # time.sleep(1)
                     win_status = False
+                    # time.sleep(2)
                     # gameOver(win_status, answer, description)
 
         ## UPDATE GAME ##
@@ -576,7 +566,11 @@ def game():
         pygame.display.flip()
 
         if win_status != "":
+            # screen.blit(msgSurf, msgRect)
+            # pygame.display.flip()
+            time.sleep(1)
             gameOver(win_status, answer, description)
+
     pygame.quit()
     sys.exit()
 
@@ -654,6 +648,7 @@ def gameOver(win_status, answer, description):
     """
     Game over screen to restart / quit the game from.
     """
+    time.sleep(2)
 
     if win_status:
         msg = "CONGRATULATIONS!"
