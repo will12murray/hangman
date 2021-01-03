@@ -2,6 +2,8 @@ import pygame
 import random
 import os
 import re
+import sys
+import time
 
 WIDTH = 800
 HEIGHT = 600
@@ -13,6 +15,7 @@ pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Hangman")
 clock = pygame.time.Clock()
+pause = False
 
 # Colours
 BLACK = (0, 0, 0)
@@ -141,7 +144,7 @@ def mask(answer, maskList):
     return maskList
 
 
-def msg(status, guess, answer):
+def msg(status, guess, answer, description):
     # Msg status = 1:Correct, 2: Incorrect, 3: previously guessed,  4:winner, 5:dead
     if status == 1:
         msg = f"Congrats! {guess} is in the answer!"
@@ -153,10 +156,10 @@ def msg(status, guess, answer):
         msg = f"You've already guessed {guess}, try again."
         colour = YELLOW
     elif status == 4:
-        msg = f"Congratulations! You got the answer which was {answer}."
+        msg = f"{answer}."
         colour = GREEN
     elif status == 5:
-        msg = f"Game over! The answer was {answer}"
+        msg = f"{answer}"
         colour = RED
     return msg, colour
 
@@ -193,16 +196,106 @@ def reveal(event, active, tries, ansMask, answer, maskList, running, incGuesses)
     return guess, maskList, msg, tries, running
 
 
-def getInput(x, y, w, h):
+def getInput(x, y, w, h, icol, acol):
+    """
+    icol = colour_inactive
+    acol = colour_active
+    """
+
     input_box = pygame.Rect(x, y, w, h)
-    colour_inactive = WHITE
-    colour_active = GREEN
+    colour_inactive = icol
+    colour_active = acol
 
     return input_box, colour_inactive, colour_active
 
 
+def unpause():
+    global pause
+    pygame.mixer.music.unpause()
+    pause = False
+
+
+def paused():
+    global pause
+    pygame.mixer.music.pause()
+
+    rx, ry, rw, rh = 300, 300, 80, 50
+    resumeBox, rcolour_inactive, rcolour_active = getInput(
+        rx, ry, rw, rh, WHITE, GREEN)
+    rCol = rcolour_inactive
+
+    pqx, pqy, pqw, pqh = 450, 300, 50, 50
+    pQBox, pQcolour_inactive, pQcolour_active = getInput(
+        pqx, pqy, pqw, pqh, WHITE, RED)
+    pQCol = pQcolour_inactive
+
+    while pause:
+        for event in pygame.event.get():
+            # Check for closing the window
+            if event.type == pygame.QUIT:
+                running = False
+                pygame.quit()
+                sys.exit()
+
+            # Check for clicking play / quit buttons.
+            if resumeBox.collidepoint((pygame.mouse.get_pos())):
+                rCol = rcolour_active
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    print("RESUME")
+                    unpause()
+            else:
+                rCol = rcolour_inactive
+
+            if pQBox.collidepoint((pygame.mouse.get_pos())):
+                pQCol = pQcolour_active
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pygame.quit()
+                    sys.exit()
+            else:
+                pQCol = pQcolour_inactive
+
+        # Create the pause box
+        pauseScreen = pygame.Surface((WIDTH * 0.5, HEIGHT * 0.5))
+        pauseScreen.set_alpha(50)
+        pauseScreen.fill(BLACK)
+
+        pauseSurf, pauseRect = textDisplay("PAUSED", 350, 200, SKYBLUE)
+        pauseRect.center = ((400, 200))
+
+        # Create the quit text and surface
+        pqSurf, pqRect = textDisplay("QUIT", pqx, pqy, pQCol)
+        pqRect.center = ((pqx + pqw / 2, pqy + pqh / 2))
+        # Create the resume text and surface
+        rSurf, rRect = textDisplay("RESUME", rx, ry, rCol)
+        rRect.center = ((rx + rw / 2, ry + rh / 2))
+
+        # Blits
+        pygame.draw.rect(pauseScreen, rCol, resumeBox, 0)
+        pygame.draw.rect(pauseScreen, pQCol, pQBox, 0)
+
+        screen.blit(pauseScreen, (WIDTH * 0.25, HEIGHT * 0.25))
+        screen.blit(pauseSurf, pauseRect)
+        screen.blit(pqSurf, pqRect)
+        screen.blit(rSurf, rRect)
+
+        pygame.display.update()
+        clock.tick(30)
+
+
+# def msgDelay(obj_surf, obj_rect, duration, msgEnd, surf=screen):
+#     """
+#     Pauses the prescribed msg for the duration provided.
+#     msgEnd = pygame.time.get_ticks() on the message to be displayed
+#     surf is surface to be blitted to - default screen
+#     """
+#     currentTime = pygame.time.get_ticks() + 3000
+#     if currentTime < msgEnd:
+#         surf.blit(obj_surf, obj_rect)
+
+
 def game():
     # Game variables
+    global pause
     answer, description = chooseAns()
     maskList = []
     ansMask = "".join(mask(answer, maskList))
@@ -210,19 +303,21 @@ def game():
     active = False
     ib_x, ib_y, ib_w, ib_h = 500, 500, 150, 40
     input_box, colour_inactive, colour_active = getInput(
-        ib_x, ib_y+1, ib_w, ib_h)
+        ib_x, ib_y+1, ib_w, ib_h, WHITE, GREEN)
     colour = colour_inactive
     tries = 0
     caption = ""
     statusColour = "GREEN"
     guess = "_"
-
+    over = False
     #### GAME LOOP ####
     running = True
+    win_status = ""
+    message_end_time = 0
 
     while running:
-
         # TIME ## - Keep it running at the right speed.
+        current_time = pygame.time.get_ticks()
         clock.tick(FPS)
 
         ## PROCESS INPUT ##
@@ -245,6 +340,9 @@ def game():
                 if tries < 11:
                     if ansMask != answer:
                         if event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_SPACE:
+                                pause = True
+                                paused()
                             guess = str(event.unicode).upper()
                             if guess.isalpha():
                                 if guess in answer:
@@ -253,24 +351,39 @@ def game():
                                             if answer[i] == guess:
                                                 maskList[i] = guess
                                                 caption, statusColour = msg(
-                                                    1, guess, answer)
+                                                    1, guess, answer, description)
+                                                message_end_time = pygame.time.get_ticks() + 3000
                                     else:
                                         caption, statusColour = msg(
-                                            3, guess, answer)
+                                            3, guess, answer, description)
+                                        message_end_time = pygame.time.get_ticks() + 3000
                                 elif guess not in incGuesses:
                                     incGuesses.append(guess)
                                     caption, statusColour = msg(
-                                        2, guess, answer)
+                                        2, guess, answer, description)
+                                    message_end_time = pygame.time.get_ticks() + 3000
                                     tries += 1
                                 else:
                                     caption, statusColour = msg(
-                                        3, guess, answer)
+                                        3, guess, answer, description)
+                                    message_end_time = pygame.time.get_ticks() + 3000
                     else:
-                        caption, statusColour = msg(4, guess, answer)
-                        running = False
+                        caption, statusColour = msg(
+                            4, guess, answer, description)
+                        message_end_time = pygame.time.get_ticks() + 3000
+                        # time.sleep(1)
+                        win_status = True
+                        # gameOver(win_status, answer, description)
                 else:
-                    caption, statusColour = msg(5, guess, answer)
-                    running = False
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_p or event.key == pygame.K_SPACE:
+                            pause = True
+                            paused()
+                    caption, statusColour = msg(5, guess, answer, description)
+                    message_end_time = pygame.time.get_ticks() + 3000
+                    # time.sleep(1)
+                    win_status = False
+                    # gameOver(win_status, answer, description)
 
         ## UPDATE GAME ##
         moveClouds()
@@ -298,7 +411,7 @@ def game():
         guessSurf, guessRect = textDisplay(
             f"Guess a letter: {guess}", ib_x, ib_y, GREEN)
         guessRect.center = ((ib_x + ib_w / 2, ib_y + ib_h / 2))
-        # # Create the message text and surface
+        # Create the message text and surface
         msgSurf, msgRect = textDisplay(caption, 260, 180, statusColour)
         msgRect.center = (WIDTH / 2, 180)
 
@@ -324,10 +437,12 @@ def game():
 
         # Blits.
         screen.blit(hudScreen, (0, 0))
+        # Test text below
         screen.blit(testTextSurf, testTextRect)
         screen.blit(maskSurf, maskRect)
         screen.blit(guessSurf, guessRect)
-        screen.blit(msgSurf, msgRect)
+        if current_time < message_end_time:
+            screen.blit(msgSurf, msgRect)
 
         # Draw the hangman based on number of tries.
         if tries == 1:
@@ -460,8 +575,174 @@ def game():
         # *After drawing everything*, flip the drawing to the display.
         pygame.display.flip()
 
+        if win_status != "":
+            gameOver(win_status, answer, description)
     pygame.quit()
+    sys.exit()
+
+
+def titleScreen():
+    """
+    Opening screen to start / quit the game from. This will load the a new game if the player clicks the button new game
+    """
+    # Define the playBox
+    px, py, pw, ph = 500, 100, 100, 50
+    playBox, play_colour_inactive, play_colour_active = getInput(
+        px, py, pw, ph, WHITE, GREEN)
+    playCol = play_colour_inactive
+
+    # Define the quitBox
+    qx, qy, qw, qh = 500, 200, 100, 50
+    quitBox, quit_colour_inactive, quit_colour_active = getInput(
+        500, 200, 100, 50, WHITE, RED)
+    quitCol = quit_colour_inactive
+
+    open = True
+    while open:
+        # TIME ## - Keep it running at the right speed.
+        clock.tick(FPS)
+
+        ## PROCESS INPUT ##
+        for event in pygame.event.get():
+            # Check for closing the window
+            if event.type == pygame.QUIT:
+                open = False
+            # Check for clicking play / quit buttons.
+            if playBox.collidepoint((pygame.mouse.get_pos())):
+                playCol = play_colour_active
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    game()
+            else:
+                playCol = play_colour_inactive
+
+            if quitBox.collidepoint((pygame.mouse.get_pos())):
+                quitCol = quit_colour_active
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pygame.quit()
+                    sys.exit()
+            else:
+                quitCol = quit_colour_inactive
+
+        ## DRAW / RENDER ##
+
+        # Load the background image
+        title_bg = pygame.image.load(
+            resource_folder + "/title_background.jpeg")
+
+        # Create the quit text and surface
+        quitSurf, quitRect = textDisplay("QUIT", qx, qy, quitCol)
+        quitRect.center = ((qx + qw / 2, qy + qh / 2))
+        # Create the play text and surface
+        playSurf, playRect = textDisplay("PLAY", px, py, playCol)
+        playRect.center = ((px + pw / 2, py + ph / 2))
+
+        # Blits
+        screen.blit(title_bg, (0, 0))
+        screen.blit(playSurf, playRect)
+        screen.blit(quitSurf, quitRect)
+        pygame.draw.rect(screen, playCol, playBox, 2)
+        pygame.draw.rect(screen, quitCol, quitBox, 2)
+
+        ## UPDATE ##
+        pygame.display.flip()
+
+    pygame.quit()
+    sys.exit()
+
+
+def gameOver(win_status, answer, description):
+    """
+    Game over screen to restart / quit the game from.
+    """
+
+    if win_status:
+        msg = "CONGRATULATIONS!"
+    else:
+        msg = "UNLUCKY!"
+
+    # Define the playBox
+    px, py, pw, ph = 650, 100, 100, 50
+    playBox, play_colour_inactive, play_colour_active = getInput(
+        px, py, pw, ph, WHITE, GREEN)
+    playCol = play_colour_inactive
+
+    # Define the quitBox
+    qx, qy, qw, qh = 650, 200, 100, 50
+    quitBox, quit_colour_inactive, quit_colour_active = getInput(
+        qx, qy, qw, qh, WHITE, RED)
+    quitCol = quit_colour_inactive
+
+    open = True
+    while open:
+        # TIME ## - Keep it running at the right speed.
+        clock.tick(FPS)
+
+        ## PROCESS INPUT ##
+        for event in pygame.event.get():
+            # Check for closing the window
+            if event.type == pygame.QUIT:
+                open = False
+            # Check for clicking play / quit buttons.
+            if playBox.collidepoint((pygame.mouse.get_pos())):
+                playCol = play_colour_active
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    game()
+            else:
+                playCol = play_colour_inactive
+
+            if quitBox.collidepoint((pygame.mouse.get_pos())):
+                quitCol = quit_colour_active
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pygame.quit()
+                    sys.exit()
+            else:
+                quitCol = quit_colour_inactive
+
+        ## DRAW / RENDER ##
+
+        # Load the background image
+        title_bg = pygame.image.load(
+            resource_folder + "/GO_background.jpg")
+
+        # Create the quit text and surface
+        quitSurf, quitRect = textDisplay("QUIT", qx, qy, quitCol)
+        quitRect.center = ((qx + qw / 2, qy + qh / 2))
+        # Create the play text and surface
+        playSurf, playRect = textDisplay("REPLAY", px, py, playCol)
+        playRect.center = ((px + pw / 2, py + ph / 2))
+        # Game Over
+        goSurf, goRect = textDisplay("GAME OVER", 400, 100, BLACK)
+        goRect.center = ((WIDTH/2, HEIGHT/2-150))
+        # WIN / LOSE text & surface
+        ansSurf, ansRect = textDisplay(msg, 400, 100, BLACK)
+        ansRect.center = ((WIDTH / 2, HEIGHT / 2 - 100))
+        # answer text & surface
+        aSurf, aRect = textDisplay(f"Answer: {answer}", 400, 100, BLACK)
+        aRect.center = ((WIDTH / 2, HEIGHT / 2 - 50))
+        # Decription text & surface
+        desSurf, desRect = textDisplay(
+            f"Meaning: {description}", 400, 200, BLACK)
+        desRect.center = ((WIDTH / 2, HEIGHT / 2))
+
+        # Blits
+
+        screen.blit(title_bg, (0, 0))
+        screen.blit(playSurf, playRect)
+        screen.blit(quitSurf, quitRect)
+        screen.blit(goSurf, goRect)
+        screen.blit(ansSurf, ansRect)
+        screen.blit(aSurf, aRect)
+        screen.blit(desSurf, desRect)
+
+        pygame.draw.rect(screen, playCol, playBox, 2)
+        pygame.draw.rect(screen, quitCol, quitBox, 2)
+
+        ## UPDATE ##
+        pygame.display.flip()
+
+    pygame.quit()
+    sys.exit()
 
 
 if __name__ == '__main__':
-    game()
+    titleScreen()
